@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Adicionado para responsividade -->
+    <title>Sistema de Agendamento</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f7f7f7;
+            padding: 30px;
+            margin: 0; /* Remove margens padrão */
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        form {
+            background: #fff;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .required {
+            color: red;
+        }
+
+        input, select, textarea {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%; /* Garante que os campos ocupem toda a largura disponível */
+            box-sizing: border-box; /* Inclui padding e border no cálculo da largura */
+        }
+
+        input:invalid {
+            border-color: red;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%; /* Botão ocupa toda a largura */
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #msg {
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: center;
+            color: green;
+        }
+
+        /* Media Queries para responsividade */
+        @media (max-width: 600px) {
+            body {
+                padding: 15px; /* Reduz o padding em telas menores */
+            }
+
+            form {
+                padding: 15px; /* Reduz o padding do formulário */
+            }
+
+            h1 {
+                font-size: 1.5em; /* Ajusta o tamanho do título */
+            }
+
+            input, select, textarea {
+                font-size: 16px; /* Aumenta o tamanho da fonte em dispositivos móveis */
+            }
+
+            button {
+                font-size: 16px; /* Aumenta o tamanho da fonte do botão */
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Agendamento de Atendimento</h1>
+    <form id="form-agendamento">
+        <label>Nome <span class="required">*</span>
+            <input type="text" name="nome" required placeholder="Ex: João da Silva">
+        </label>
+
+        <label>CPF <span class="required">*</span>
+            <input type="text" name="cpf" required placeholder="Ex: 12345678900" maxlength="11" pattern="\d{11}">
+        </label>
+
+        <label>Telefone <span class="required">*</span>
+            <input type="text" name="telefone" required placeholder="Ex: 11999998888" maxlength="11" pattern="\d{10,11}">
+        </label>
+
+        <label>Data <span class="required">*</span>
+            <input type="date" name="data" id="data-agendamento" required>
+        </label>
+
+        <label>Horário <span class="required">*</span>
+            <select name="horario" required id="horario-select"></select>
+        </label>
+
+        <label>Observações
+            <textarea name="obs" placeholder="(Opcional)"></textarea>
+        </label>
+
+        <button type="submit">Agendar</button>
+    </form>
+    <p id="msg"></p>
+
+    <script>
+        const horarioSelect = document.getElementById('horario-select');
+        const horarios = [];
+        let hora = 8, minuto = 30;
+
+        while (hora < 19) {
+            const timeStr = `${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
+            const totalMin = hora * 60 + minuto;
+
+            if (!((totalMin >= 690 && totalMin < 790) || totalMin === 1010)) {
+                horarios.push(timeStr);
+            }
+
+            minuto += 20;
+            if (minuto >= 60) {
+                minuto -= 60;
+                hora++;
+            }
+        }
+
+        horarios.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h;
+            opt.textContent = h;
+            horarioSelect.appendChild(opt);
+        });
+
+        const dataInput = document.getElementById('data-agendamento');
+        const today = new Date();
+        dataInput.min = today.toISOString().split('T')[0];
+
+        dataInput.addEventListener('input', () => {
+            const selectedDate = new Date(dataInput.value);
+            const day = selectedDate.getUTCDay();
+            if (day === 0 || day === 6) {
+                alert("Escolha um dia útil (segunda à sexta-feira).");
+                dataInput.value = '';
+            }
+        });
+
+        document.getElementById('form-agendamento').addEventListener('submit', async e => {
+            e.preventDefault();
+            const form = e.target;
+            const data = new FormData(form);
+            const res = await fetch('agendar.php', {
+                method: 'POST',
+                body: data
+            });
+            const text = await res.text();
+            document.getElementById('msg').textContent = text;
+            form.reset();
+        });
+
+        // Impede entrada de letras nos campos numéricos (CPF, Telefone)
+        document.querySelectorAll('input[name="cpf"], input[name="telefone"]').forEach(input => {
+            input.addEventListener('input', () => {
+                input.value = input.value.replace(/\D/g, '');
+            });
+        });
+    </script>
+</body>
+</html>
